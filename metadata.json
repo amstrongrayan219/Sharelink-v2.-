@@ -1,0 +1,6 @@
+{
+  "name": "ShareLink",
+  "description": "Local Wi-Fi file sharing between phone and PC with QR code scan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
