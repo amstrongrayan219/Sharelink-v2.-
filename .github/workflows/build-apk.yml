@@ -21,20 +21,39 @@ jobs:
 
     - name: 3. Détection et Compilation de l'APK
       run: |
-        # Le robot cherche le fichier gradlew dans tous les sous-dossiers
-        GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
+        # Le robot cherche le fichier de configuration racine (settings.gradle)
+        ROOT_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" -print -quit)
         
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "❌ Erreur : Impossible de trouver le fichier 'gradlew' dans tes dossiers."
+        # Si pas de settings.gradle, on cherche un build.gradle principal
+        if [ -z "$ROOT_PATH" ]; then
+          ROOT_PATH=$(find . -name "build.gradle" -o -name "build.gradle.kts" -print -quit)
+        fi
+        
+        if [ -z "$ROOT_PATH" ]; then
+          echo "❌ Erreur : Impossible de trouver la racine d'un projet Android dans tes dossiers."
           exit 1
         fi
         
-        # On extrait le chemin du dossier qui contient gradlew
-        DOSSIER_PROJET=$(dirname "$GRADLEW_PATH")
-        echo "🟢 Projet Android détecté dans : $DOSSIER_PROJET"
-        
-        # On se déplace dans ce dossier pour lancer la cuisine
+        # On se déplace à la racine du projet
+        DOSSIER_PROJET=$(dirname "$ROOT_PATH")
+        echo "🟢 Racine du projet Android détectée dans : $DOSSIER_PROJET"
         cd "$DOSSIER_PROJET"
+        
+        # Si gradlew est là, on l'utilise. Sinon, on utilise le Gradle universel de GitHub.
+        if [ -f "gradlew" ]; then
+          echo "🤖 Fichier gradlew trouvé. Utilisation de la configuration locale..."
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "🌍 Fichier gradlew manquant. Utilisation du Gradle universel de GitHub..."
+          gradle assembleDebug
+        fi
+
+    - name: 4. Mise à disposition du fichier APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mon_Application_Android_APK
+        path: "**/build/outputs/apk/debug/app-debug.apk"        cd "$DOSSIER_PROJET"
         chmod +x gradlew
         ./gradlew assembleDebug
 
