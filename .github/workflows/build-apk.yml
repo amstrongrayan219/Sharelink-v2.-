@@ -1,0 +1,32 @@
+name: Fabriquer l'APK Automatiquement
+
+on:
+  push:
+    branches: [ "main", "master" ] # Se lance dès que tu mets à jour ton code
+  workflow_dispatch: # Te permet de lancer la fabrication à la main quand tu veux
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 1. Récupération de ton code
+      uses: actions/checkout@v4
+
+    - name: 2. Installation de Java (Le moteur Android)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: 3. Autorisation du script d'assemblage
+      run: chmod +x gradlew
+
+    - name: 4. Compilation de l'APK (Le robot cuisine)
+      run: ./gradlew assembleDebug
+
+    - name: 5. Mise à disposition du fichier APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: Mon_Application_Android_APK
+        path: app/build/outputs/apk/debug/app-debug.apk
