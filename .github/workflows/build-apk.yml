@@ -10,31 +10,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: 1. Récupération de ton code
-      uses: actions/checkout@v4
+      - name: 1. Recuperation du code
+        uses: actions/checkout@v4
 
-    - name: 2. Installation de Java (Le moteur Android)
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: 2. Installation de Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
 
-    - name: 3. Détection et Compilation de l'APK
-      run: |
-        # Le robot cherche le fichier de configuration racine (settings.gradle)
-        ROOT_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" -print -quit)
-        
-        # Si pas de settings.gradle, on cherche un build.gradle principal
-        if [ -z "$ROOT_PATH" ]; then
-          ROOT_PATH=$(find . -name "build.gradle" -o -name "build.gradle.kts" -print -quit)
-        fi
-        
-        if [ -z "$ROOT_PATH" ]; then
-          echo "❌ Erreur : Impossible de trouver la racine d'un projet Android dans tes dossiers."
-          exit 1
-        fi
-        
-        # On se déplace à la racine du projet
+      - name: 3. Detection et Compilation
+        run: |
+          ROOT_PATH=$(find . -name "settings.gradle" -o -name "settings.gradle.kts" -print -quit)
+          
+          if [ -z "$ROOT_PATH" ]; then
+            ROOT_PATH=$(find . -name "build.gradle" -o -name "build.gradle.kts" -print -quit)
+          fi
+          
+          if [ -z "$ROOT_PATH" ]; then
+            echo "Erreur : Racine Android introuvable."
+            exit 1
+          fi
+          
+          DOSSIER_PROJET=$(dirname "$ROOT_PATH")
+          echo "Projet detecte dans : $DOSSIER_PROJET"
+          cd "$DOSSIER_PROJET"
+          
+          if [ -f "gradlew" ]; then
+            echo "Utilisation de gradlew local..."
+            chmod +x gradlew
+            ./gradlew assembleDebug
+          else
+            echo "Utilisation du Gradle global..."
+            gradle assembleDebug
+          fi
+
+      - name: 4. Extraction de l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mon_Application_Android_APK
+          path: "**/build/outputs/apk/debug/app-debug.apk"        # On se déplace à la racine du projet
         DOSSIER_PROJET=$(dirname "$ROOT_PATH")
         echo "🟢 Racine du projet Android détectée dans : $DOSSIER_PROJET"
         cd "$DOSSIER_PROJET"
