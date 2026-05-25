@@ -145,7 +145,30 @@ val copyToBuildOutputs = tasks.register<Copy>("copyToBuildOutputs") {
     into(rootProject.layout.projectDirectory.dir(".build-outputs"))
 }
 
+val copyToRootBuild = tasks.register<Copy>("copyToRootBuild") {
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(rootProject.layout.projectDirectory.dir("build"))
+}
+
+val copyToRootOutputs = tasks.register<Copy>("copyToRootOutputs") {
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(rootProject.layout.projectDirectory.dir("outputs"))
+}
+
+val copyToRootShareLinkAPK = tasks.register<Copy>("copyToRootShareLinkAPK") {
+    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
+    into(rootProject.layout.projectDirectory.dir("ShareLink-APK"))
+}
+
 afterEvaluate {
-    tasks.findByName("assembleDebug")?.finalizedBy(copyToBuild, copyToOutputs, copyToOutoputs, copyToBuildOutputs)
+    tasks.findByName("assembleDebug")?.finalizedBy(
+        copyToBuild,
+        copyToOutputs,
+        copyToOutoputs,
+        copyToBuildOutputs,
+        copyToRootBuild,
+        copyToRootOutputs,
+        copyToRootShareLinkAPK
+    )
 }
 
