@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: 'gradle'
+
+    - name: Decode Debug Keystore
+      run: |
+        if [ -f debug.keystore.base64 ]; then
+          base64 -d debug.keystore.base64 > debug.keystore
+          echo "Debug keystore decoded successfully."
+        else
+          echo "debug.keystore.base64 not found."
+        fi
+
+    - name: Setup Environment Config
+      run: |
+        if [ -f .env.example ]; then
+          cp .env.example .env
+          echo "Created .env from .env.example"
+        else
+          touch .env
+          echo "Created empty .env file"
+        fi
+
+    - name: Set up Gradle
+      uses: gradle/actions/setup-gradle@v4
+      with:
+        gradle-version: "8.11.1"
+
+    - name: Build Debug APK
+      run: gradle :app:assembleDebug
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: outputs/app-debug.apk

@@ -16,11 +16,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import android.util.Log
+import android.widget.Toast
+import androidx.core.content.FileProvider
 import androidx.compose.material.icons.filled.Cached
 import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.GetApp
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import java.io.File
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -201,6 +207,70 @@ fun MainScreen(
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Beautiful interactive APK download and sharing card
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { exportApkAndShare(context) }
+                        .testTag("download_apk_card"),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(PrimaryBlue.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.GetApp,
+                                    contentDescription = "Télécharger APK",
+                                    tint = PrimaryBlue,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = "Obtenir l'installateur APK (app-debug.apk)",
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White
+                                )
+                                Text(
+                                    text = "Copier vers vos Téléchargements ou partager l'APK",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Partager",
+                            tint = PrimaryBlue.copy(alpha = 0.8f),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
             }
 
             // Recent Devices Section
@@ -339,5 +409,66 @@ fun DeviceRow(
                 )
             }
         }
+    }
+}
+
+fun exportApkAndShare(context: Context) {
+    try {
+        val filename = "app-debug.apk"
+        val targetDir = context.getExternalFilesDir("ShareLink") ?: File(context.filesDir, "ShareLink")
+        if (!targetDir.exists()) {
+            targetDir.mkdirs()
+        }
+        val targetFile = File(targetDir, filename)
+        
+        // Copy the application's actual running APK directly from the device's installed package!
+        try {
+            val apkFile = File(context.packageCodePath)
+            if (apkFile.exists()) {
+                apkFile.inputStream().use { input ->
+                    targetFile.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Log.d("MainActivity", "Successfully copied APK from packageCodePath: ${context.packageCodePath}")
+            } else {
+                throw Exception("packageCodePath file does not exist")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to copy live packageCodePath, trying asset fallback as backup", e)
+            // Fallback to assets open as backup
+            context.assets.open(filename).use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+        }
+        
+        // Also copy it to the public Downloads folder so it is visible in the device file manager
+        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(
+            android.os.Environment.DIRECTORY_DOWNLOADS
+        )
+        if (downloadsDir != null) {
+            if (!downloadsDir.exists()) {
+                downloadsDir.mkdirs()
+            }
+            val publicFile = File(downloadsDir, "ShareLink-debug.apk")
+            targetFile.copyTo(publicFile, overwrite = true)
+            Toast.makeText(context, "Enregistré dans : Téléchargements/ShareLink-debug.apk", Toast.LENGTH_LONG).show()
+        }
+        
+        // Share APK via intent
+        val authority = "com.sharelink.app.fileprovider"
+        val uri = FileProvider.getUriForFile(context, authority, targetFile)
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/vnd.android.package-archive"
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        context.startActivity(Intent.createChooser(intent, "Partager l'APK de ShareLink"))
+    } catch (e: Exception) {
+        Log.e("MainActivity", "Error exporting APK", e)
+        Toast.makeText(context, "Erreur d'obtention de l'APK: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }

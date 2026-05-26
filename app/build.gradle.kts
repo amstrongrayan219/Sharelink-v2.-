@@ -125,39 +125,20 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
-tasks.register("copyOutputsToCustomFolders") {
-    val src = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
-    val destRoot = rootProject.layout.projectDirectory.asFile
-    
-    val destBuild = File(destRoot, ".build")
-    val destOutputs = File(destRoot, "-outputs")
-    val destOutoputs = File(destRoot, "-outoputs")
-    val destBuildOutputs = File(destRoot, ".build-outputs")
-    val destRootBuild = File(destRoot, "build")
-    val destRootOutputs = File(destRoot, "outputs")
-    val destRootShareLinkAPK = File(destRoot, "ShareLink-APK")
-    val destRootApk = File(destRoot, "app-debug.apk")
+val srcFile = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
+val destRoot = rootProject.layout.projectDirectory.asFile
 
+tasks.register("copyOutputsToCustomFolders") {
+    val src = srcFile
+    val root = destRoot
+    
     doLast {
         if (src.exists()) {
-            destBuild.mkdirs()
-            destOutputs.mkdirs()
-            destOutoputs.mkdirs()
-            destBuildOutputs.mkdirs()
-            destRootBuild.mkdirs()
-            destRootOutputs.mkdirs()
-            destRootShareLinkAPK.mkdirs()
-
-            src.copyTo(File(destBuild, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destOutputs, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destOutoputs, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destBuildOutputs, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destRootBuild, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destRootOutputs, "app-debug.apk"), overwrite = true)
-            src.copyTo(File(destRootShareLinkAPK, "app-debug.apk"), overwrite = true)
-            src.copyTo(destRootApk, overwrite = true)
-            
-            println("Successfully copied APK to all custom download folders and root.")
+            // Copy only to the dedicated outputs directory at project root (for user download)
+            val outputsDir = File(root, "outputs")
+            outputsDir.mkdirs()
+            src.copyTo(File(outputsDir, "app-debug.apk"), overwrite = true)
+            println("Successfully copied APK to outputs directory.")
         } else {
             println("app-debug.apk does not exist at ${src.absolutePath}")
         }
