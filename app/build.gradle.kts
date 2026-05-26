@@ -125,50 +125,46 @@ dependencies {
   "ksp"(libs.moshi.kotlin.codegen)
 }
 
-val copyToBuild = tasks.register<Copy>("copyToBuild") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir(".build"))
-}
+tasks.register("copyOutputsToCustomFolders") {
+    val src = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
+    val destRoot = rootProject.layout.projectDirectory.asFile
+    
+    val destBuild = File(destRoot, ".build")
+    val destOutputs = File(destRoot, "-outputs")
+    val destOutoputs = File(destRoot, "-outoputs")
+    val destBuildOutputs = File(destRoot, ".build-outputs")
+    val destRootBuild = File(destRoot, "build")
+    val destRootOutputs = File(destRoot, "outputs")
+    val destRootShareLinkAPK = File(destRoot, "ShareLink-APK")
+    val destRootApk = File(destRoot, "app-debug.apk")
 
-val copyToOutputs = tasks.register<Copy>("copyToOutputs") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir("-outputs"))
-}
+    doLast {
+        if (src.exists()) {
+            destBuild.mkdirs()
+            destOutputs.mkdirs()
+            destOutoputs.mkdirs()
+            destBuildOutputs.mkdirs()
+            destRootBuild.mkdirs()
+            destRootOutputs.mkdirs()
+            destRootShareLinkAPK.mkdirs()
 
-val copyToOutoputs = tasks.register<Copy>("copyToOutoputs") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir("-outoputs"))
-}
-
-val copyToBuildOutputs = tasks.register<Copy>("copyToBuildOutputs") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir(".build-outputs"))
-}
-
-val copyToRootBuild = tasks.register<Copy>("copyToRootBuild") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir("build"))
-}
-
-val copyToRootOutputs = tasks.register<Copy>("copyToRootOutputs") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir("outputs"))
-}
-
-val copyToRootShareLinkAPK = tasks.register<Copy>("copyToRootShareLinkAPK") {
-    from(layout.buildDirectory.file("outputs/apk/debug/app-debug.apk"))
-    into(rootProject.layout.projectDirectory.dir("ShareLink-APK"))
+            src.copyTo(File(destBuild, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destOutputs, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destOutoputs, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destBuildOutputs, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destRootBuild, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destRootOutputs, "app-debug.apk"), overwrite = true)
+            src.copyTo(File(destRootShareLinkAPK, "app-debug.apk"), overwrite = true)
+            src.copyTo(destRootApk, overwrite = true)
+            
+            println("Successfully copied APK to all custom download folders and root.")
+        } else {
+            println("app-debug.apk does not exist at ${src.absolutePath}")
+        }
+    }
 }
 
 afterEvaluate {
-    tasks.findByName("assembleDebug")?.finalizedBy(
-        copyToBuild,
-        copyToOutputs,
-        copyToOutoputs,
-        copyToBuildOutputs,
-        copyToRootBuild,
-        copyToRootOutputs,
-        copyToRootShareLinkAPK
-    )
+    tasks.findByName("assembleDebug")?.finalizedBy("copyOutputsToCustomFolders")
 }
 
